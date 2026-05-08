@@ -1,0 +1,275 @@
+{
+	"name": "pl3_gcp_bronze_delta_silver",
+	"properties": {
+		"activities": [
+			{
+				"name": "lookup_metadata_table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureDatabricksDeltaLakeSource",
+						"query": "select * from pt.dev_metadata_schema.tbl_parameters where job_id=103;"
+					},
+					"dataset": {
+						"referenceName": "1_lookup_databricks",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEachsilvertables",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lookup_metadata_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lookup_metadata_table').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Notebook1",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/bronzetosilverdimtablesgcp",
+								"baseParameters": {
+									"job_id": {
+										"value": "@item().job_id",
+										"type": "Expression"
+									},
+									"source_file_path": {
+										"value": "@item().source_file_path",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_products_fail",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Notebook1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_load_id",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@activity('Notebook1').output.runError\n",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "failed",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "emptydataset check",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Notebook1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('Notebook1').output.runOutput,'no_data')",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "update logs_products_pass_copy1",
+										"type": "DatabricksNotebook",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+											"baseParameters": {
+												"env": {
+													"value": "@pipeline().globalParameters.env",
+													"type": "Expression"
+												},
+												"loadId": {
+													"value": "@string(pipeline().parameters.p_load_id)",
+													"type": "Expression"
+												},
+												"logMessage": {
+													"value": "@concat('copied data from bronze ',item().source_file_path,' to silver ',item().source_file_path)",
+													"type": "Expression"
+												},
+												"logTimeStamp": {
+													"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+													"type": "Expression"
+												},
+												"pipeLineName": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"status": {
+													"value": "success",
+													"type": "Expression"
+												},
+												"triggerType": {
+													"value": "@pipeline().TriggerType",
+													"type": "Expression"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_databricks",
+											"type": "LinkedServiceReference"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "update logs_products_pass",
+										"type": "DatabricksNotebook",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+											"baseParameters": {
+												"env": {
+													"value": "@pipeline().globalParameters.env",
+													"type": "Expression"
+												},
+												"loadId": {
+													"value": "@string(pipeline().parameters.p_load_id)",
+													"type": "Expression"
+												},
+												"logMessage": {
+													"value": "@concat('no data from bronze ',item().source_file_path,'runOutput :',activity('Notebook1').output.runOutput)",
+													"type": "Expression"
+												},
+												"logTimeStamp": {
+													"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+													"type": "Expression"
+												},
+												"pipeLineName": {
+													"value": "@pipeline().Pipeline",
+													"type": "Expression"
+												},
+												"status": {
+													"value": "ignored",
+													"type": "Expression"
+												},
+												"triggerType": {
+													"value": "@pipeline().TriggerType",
+													"type": "Expression"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_databricks",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_load_id": {
+				"type": "int",
+				"defaultValue": 103
+			}
+		},
+		"folder": {
+			"name": "gcp_to_pt"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-05-08T05:51:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

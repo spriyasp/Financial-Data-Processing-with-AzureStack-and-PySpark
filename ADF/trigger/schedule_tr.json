@@ -1,0 +1,31 @@
+{
+	"name": "schedule_tr",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "plmain_api_fx",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "plmain_gcptopt",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 12,
+				"startTime": "2026-05-01T06:16:00",
+				"endTime": "2026-05-02T06:16:00",
+				"timeZone": "India Standard Time"
+			}
+		}
+	}
+}

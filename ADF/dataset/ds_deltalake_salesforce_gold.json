@@ -1,0 +1,38 @@
+{
+	"name": "ds_deltalake_salesforce_gold",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_databricks_delalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLakeDataset",
+		"typeProperties": {
+			"database": "dev_gold",
+			"table": "salesfore_projects"
+		},
+		"schema": [
+			{
+				"name": "status",
+				"type": "string"
+			},
+			{
+				"name": "customer_name",
+				"type": "string"
+			},
+			{
+				"name": "project_id",
+				"type": "double"
+			},
+			{
+				"name": "description",
+				"type": "string"
+			},
+			{
+				"name": "city",
+				"type": "string"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

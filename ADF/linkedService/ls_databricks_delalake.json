@@ -1,0 +1,13 @@
+{
+	"name": "ls_databricks_delalake",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLake",
+		"typeProperties": {
+			"domain": "https://adb-7405619498590137.17.azuredatabricks.net",
+			"clusterId": "0417-155003-290mrg6j",
+			"workspaceResourceId": "/subscriptions/12fd5330-beee-4ba7-a5e1-0ccd3e8235d1/resourceGroups/rg-projecttracking-dev/providers/Microsoft.Databricks/workspaces/projecttracking-databricksworkpce-dev"
+		}
+	}
+}

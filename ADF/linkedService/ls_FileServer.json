@@ -1,0 +1,17 @@
+{
+	"name": "ls_FileServer",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "C:\\files",
+			"userId": "jerrymia\\admin",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJiMGM5NjJjZS1jYzA3LTRmZGQtYTNlMS1iYmE3MGMyZDBlMGYiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "SHIRPTdev",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

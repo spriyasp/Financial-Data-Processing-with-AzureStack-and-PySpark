@@ -1,0 +1,21 @@
+{
+	"name": "projecttracking-datafactory-dev",
+	"properties": {
+		"globalParameters": {
+			"env": {
+				"type": "string",
+				"value": "dev"
+			}
+		},
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "southindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "99000981-3176-416d-a3fc-d6d99a404324",
+		"tenantId": "75a86e55-150f-4d2e-bbef-2eb890aef1ba"
+	}
+}

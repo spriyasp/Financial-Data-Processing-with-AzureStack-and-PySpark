@@ -1,0 +1,13 @@
+{
+	"name": "1_lookup_databricks",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_databricks_delalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLakeDataset",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
