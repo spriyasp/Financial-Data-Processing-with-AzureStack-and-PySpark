@@ -1,0 +1,89 @@
+
+%sql
+create table pt.dev_gold.dim_products
+(
+  dim_key bigint generated always as identity,
+  product_id string,
+  product_name string,
+  units int,
+  stakeholder string,
+  feed_date timestamp,
+  is_active boolean,
+  start_date timestamp,
+  end_date timestamp
+)
+location 'abfss://gold@projecttrackingadlsdev.dfs.core.windows.net/dim_products';
+
+%sql
+create table pt.dev_gold.dim_tier_details(
+  dim_key bigint generated always as identity,
+  tier_id string,
+  tier_name string,
+  feed_date timestamp,
+  is_active boolean,
+  start_date timestamp,
+  end_date timestamp
+)
+location 'abfss://gold@projecttrackingadlsdev.dfs.core.windows.net/dim_tier_details';
+
+
+
+create table spadfdb.integcosting
+(
+project_id number,
+product_id varchar2(10),
+tier_id varchar2(10),
+currency varchar2(10),
+description varchar2(50),
+cost number,
+created_date date,
+upd_date date
+)
+
+
+
+create table pt.dev_bronze.fact_integcosting
+(
+project_id integer,
+product_id string,
+tier_id string,
+currency string,
+description string,
+cost integer,
+created_date date,
+upd_date date
+)
+
+location 'abfss://bronze@projecttrackingadlsdev.dfs.core.windows.net/fact_integcosting'
+
+
+%sql
+
+create table pt.dev_gold.fact_integcosting
+(
+dim_key bigint GENERATED ALWAYS AS IDENTITY,
+project_id bigint,
+product_id STRING,
+tier_id STRING,
+currency STRING,
+cost bigint,
+is_active char(1),
+start_date timestamp,
+end_date timestamp
+)
+
+
+
+create table pt.dev_gold.fact_integcosting
+(
+dim_key bigint GENERATED ALWAYS AS IDENTITY,
+project_id bigint,
+product_id STRING,
+tier_id STRING,
+currency STRING,
+cost bigint,
+is_active char(1),
+start_date timestamp,
+end_date timestamp
+)
+location 'abfss://gold@projecttrackingadlsdev.dfs.core.windows.net/fact_integcosting'
