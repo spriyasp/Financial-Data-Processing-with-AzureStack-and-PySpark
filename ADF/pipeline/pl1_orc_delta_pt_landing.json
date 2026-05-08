@@ -1,0 +1,417 @@
+{
+	"name": "pl1_orc_delta_pt_landing",
+	"properties": {
+		"activities": [
+			{
+				"name": "lookup metadata",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureDatabricksDeltaLakeSource",
+						"query": "select * from pt.dev_metadata_schema.tbl_parameters where job_id=201;"
+					},
+					"dataset": {
+						"referenceName": "1_lookup_databricks",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "lookup count",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "lookup metadata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "OracleSource",
+						"oracleReaderQuery": {
+							"value": "@concat('select count(*) as count from spadfdb.integcosting where created_date >  TO_DATE(''',activity('lookup metadata').output.value[0].watermark_column,''',''MM/DD/YYYY HH:MI:SS AM'')')",
+							"type": "Expression"
+						},
+						"partitionOption": "None",
+						"numberPrecision": 38,
+						"numberScale": 18,
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "1_ds_oracle",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "If Condition check 0 files",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "lookup count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('lookup count').output.count,0)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Copy data",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "OracleSource",
+									"oracleReaderQuery": {
+										"value": "@concat('SELECT \n  CAST(project_id AS NUMBER(18,0)) AS project_id,\n  product_id,\n  tier_id,\n  currency,\n  description,\n  CAST(cost AS NUMBER(18,0)) AS cost,\n  cast(created_date as timestamp) as created_date,\n  cast(upd_date as timestamp) as upd_date from spadfdb.integcosting where created_date >  TO_DATE(''',activity('lookup metadata').output.value[0].watermark_column,''',''MM/DD/YYYY HH:MI:SS AM'')')\n\n",
+										"type": "Expression"
+									},
+									"partitionOption": "None",
+									"numberPrecision": 38,
+									"numberScale": 18,
+									"queryTimeout": "02:00:00"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"name": "PROJECT_ID",
+												"type": "Int64",
+												"physicalType": "number"
+											},
+											"sink": {
+												"name": "PROJECT_ID",
+												"type": "Int64",
+												"physicalType": "INT_64"
+											}
+										},
+										{
+											"source": {
+												"name": "PRODUCT_ID",
+												"type": "String",
+												"physicalType": "varchar2"
+											},
+											"sink": {
+												"name": "PRODUCT_ID",
+												"type": "String",
+												"physicalType": "UTF8"
+											}
+										},
+										{
+											"source": {
+												"name": "TIER_ID",
+												"type": "String",
+												"physicalType": "varchar2"
+											},
+											"sink": {
+												"name": "TIER_ID",
+												"type": "String",
+												"physicalType": "UTF8"
+											}
+										},
+										{
+											"source": {
+												"name": "CURRENCY",
+												"type": "String",
+												"physicalType": "varchar2"
+											},
+											"sink": {
+												"name": "CURRENCY",
+												"type": "String",
+												"physicalType": "UTF8"
+											}
+										},
+										{
+											"source": {
+												"name": "DESCRIPTION",
+												"type": "String",
+												"physicalType": "varchar2"
+											},
+											"sink": {
+												"name": "DESCRIPTION",
+												"type": "String",
+												"physicalType": "UTF8"
+											}
+										},
+										{
+											"source": {
+												"name": "COST",
+												"type": "Int64",
+												"physicalType": "number"
+											},
+											"sink": {
+												"name": "COST",
+												"type": "Int64",
+												"physicalType": "INT_64"
+											}
+										},
+										{
+											"source": {
+												"name": "CREATED_DATE",
+												"type": "DateTime",
+												"physicalType": "timestamp"
+											},
+											"sink": {
+												"name": "CREATED_DATE",
+												"type": "DateTime",
+												"physicalType": "INT_96"
+											}
+										},
+										{
+											"source": {
+												"name": "UPD_DATE",
+												"type": "DateTime",
+												"physicalType": "timestamp"
+											},
+											"sink": {
+												"name": "UPD_DATE",
+												"type": "DateTime",
+												"physicalType": "INT_96"
+											}
+										}
+									],
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "1_ds_oracle",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_adls_sink_landing",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_foldername": {
+											"value": "oracle_integcosting",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Notebook updatewatermark",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/update matermark",
+								"baseParameters": {
+									"job_id": {
+										"value": "@string(pipeline().parameters.p_job_id)",
+										"type": "Expression"
+									},
+									"sourcepath": {
+										"value": "@activity('lookup metadata').output.value[0].source_file_path",
+										"type": "Expression"
+									},
+									"watermark": {
+										"value": "@addSeconds(\n    convertFromUtc(utcNow(), 'India Standard Time'),\n    1\n)",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_products_pass",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_job_id",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat(\n    'copied data from oracle_integ to pt_landing',\n     string(activity('Copy data').output.rowsRead),\n     ' : ',\n     string(activity('Copy data').output.rowsCopied))",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "success",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_products_fail",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy data",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_job_id",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@activity('Copy data').Error.message",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "failed",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_job_id": {
+				"type": "string",
+				"defaultValue": "201"
+			}
+		},
+		"folder": {
+			"name": "orc_to_pt_integcosting"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-05-08T05:51:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

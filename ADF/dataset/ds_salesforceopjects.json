@@ -1,0 +1,16 @@
+{
+	"name": "ds_salesforceopjects",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Salesforce1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SalesforceV2Object",
+		"schema": [],
+		"typeProperties": {
+			"objectApiName": "sfbatch1__c"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

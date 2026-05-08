@@ -1,0 +1,17 @@
+{
+	"name": "1ds_deltalake_tierdetails",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_databricks_delalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLakeDataset",
+		"typeProperties": {
+			"database": "dev_bronze",
+			"table": "dim_tier_details"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

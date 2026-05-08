@@ -1,0 +1,85 @@
+{
+	"name": "testwatermark",
+	"properties": {
+		"activities": [
+			{
+				"name": "update watermarkproducts",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/update matermark",
+					"baseParameters": {
+						"job_id": {
+							"value": "102",
+							"type": "Expression"
+						},
+						"sourcepath": {
+							"value": "GCP/dim_tables/tier_details",
+							"type": "Expression"
+						},
+						"watermark": {
+							"value": "\n\n@addSeconds(\n    convertFromUtc(\n        formatDateTime(activity('Get Metadata1').output.lastModified, 'yyyy-MM-ddTHH:mm:ssZ'),\n        'India Standard Time'\n    ),\n    1\n)",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "Parquet1",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"itemName",
+						"lastModified"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "ParquetReadSettings"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "basictests"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-05-08T05:51:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

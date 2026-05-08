@@ -1,0 +1,17 @@
+{
+	"name": "1_ds_oracle",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_oracle",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "OracleTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "SPADFDB",
+			"table": "COURSES"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

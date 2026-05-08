@@ -1,0 +1,52 @@
+{
+	"name": "ds_gcp_param",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_gcp",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_filepath": {
+				"type": "string"
+			},
+			"p_filename": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "GoogleCloudStorageLocation",
+				"bucketName": "pt-gcp-source",
+				"folderPath": {
+					"value": "@dataset().p_filepath",
+					"type": "Expression"
+				},
+				"fileName": {
+					"value": "@dataset().p_filename",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "product_id",
+				"type": "String"
+			},
+			{
+				"name": "product_name",
+				"type": "String"
+			},
+			{
+				"name": "units",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

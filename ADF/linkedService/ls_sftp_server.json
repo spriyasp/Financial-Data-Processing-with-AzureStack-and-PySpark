@@ -1,0 +1,20 @@
+{
+	"name": "ls_sftp_server",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Sftp",
+		"typeProperties": {
+			"host": "192.168.1.6",
+			"port": 22,
+			"skipHostKeyValidation": true,
+			"authenticationType": "Basic",
+			"userName": "jerrymia\\admin",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJlZDFiZmNhNC04YjcyLTQ0MjUtYjAzZC05OGJmMTUyMWI0YjMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "SHIRPTdev",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

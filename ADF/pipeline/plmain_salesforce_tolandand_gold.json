@@ -1,0 +1,244 @@
+{
+	"name": "plmain_salesforce_tolandand_gold",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data_salesforce_to_landing",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SalesforceV2Source",
+						"query": "select status__c ,\ncustomer_name__c ,\nproject_id__c ,\ndescription__c ,\ncity__c FROM sfbatch1__c",
+						"includeDeletedObjects": false,
+						"partitionOption": "AutoDetect",
+						"preserveScaleFromSchema": false
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "status__c",
+									"type": "String",
+									"physicalType": "string"
+								},
+								"sink": {
+									"name": "status",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
+									"name": "customer_name__c",
+									"type": "String",
+									"physicalType": "string"
+								},
+								"sink": {
+									"name": "customer_name",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
+									"name": "project_id__c",
+									"type": "Decimal",
+									"physicalType": "double"
+								},
+								"sink": {
+									"name": "project_id",
+									"physicalType": "DECIMAL"
+								}
+							},
+							{
+								"source": {
+									"name": "description__c",
+									"type": "String",
+									"physicalType": "string"
+								},
+								"sink": {
+									"name": "description",
+									"physicalType": "UTF8"
+								}
+							},
+							{
+								"source": {
+									"name": "city__c",
+									"type": "String",
+									"physicalType": "string"
+								},
+								"sink": {
+									"name": "city",
+									"physicalType": "UTF8"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_salesforceopjects",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_sink_landing",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_foldername": {
+								"value": "salesforce",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Copy datalanding_deltalakegold",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Copy data_salesforce_to_landing",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "ParquetReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureDatabricksDeltaLakeSink",
+						"preCopyScript": "truncate table dev_gold.salesfore_projects",
+						"importSettings": {
+							"type": "AzureDatabricksDeltaLakeImportCommand"
+						}
+					},
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "ls_adls",
+							"type": "LinkedServiceReference"
+						},
+						"path": "staging"
+					},
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "status",
+									"type": "String"
+								},
+								"sink": {
+									"name": "status",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "customer_name",
+									"type": "String"
+								},
+								"sink": {
+									"name": "customer_name",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "project_id",
+									"type": "Decimal"
+								},
+								"sink": {
+									"name": "project_id",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"name": "description",
+									"type": "String"
+								},
+								"sink": {
+									"name": "description",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "city",
+									"type": "String"
+								},
+								"sink": {
+									"name": "city",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_sink_param_landing_orc",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_filename": "sfbatch1__c_MDowR2FnNTAwMDAwMjFDNjFDQUU6MA.parquet",
+							"p_foldername": "salesforce"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_deltalake_salesforce_gold",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-05-08T05:51:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,30 @@
+{
+	"name": "ls_oracle",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Oracle",
+		"version": "2.0",
+		"typeProperties": {
+			"server": "localhost:1521/ORCLPDB",
+			"authenticationType": "Basic",
+			"username": "spadfdb",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "oraclepwd"
+			},
+			"encryptionClient": "accepted",
+			"encryptionTypesClient": "(AES128, AES192, AES256, 3DES112, 3DES168)",
+			"cryptoChecksumClient": "accepted",
+			"cryptoChecksumTypesClient": "(SHA1, SHA256, SHA384, SHA512)"
+		},
+		"connectVia": {
+			"referenceName": "SHIRPTdev",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

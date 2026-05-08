@@ -1,0 +1,17 @@
+{
+	"name": "ds_deltalakebronze_integ_sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_databricks_delalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLakeDataset",
+		"typeProperties": {
+			"database": "dev_bronze",
+			"table": "fact_integcosting"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

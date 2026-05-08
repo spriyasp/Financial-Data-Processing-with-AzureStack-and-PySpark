@@ -1,0 +1,883 @@
+{
+	"name": "pl1_gcp_source_landing",
+	"properties": {
+		"activities": [
+			{
+				"name": "lookup_metadata_table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureDatabricksDeltaLakeSource",
+						"query": "select * from pt.dev_metadata_schema.tbl_parameters where job_id=101 order by source_file_path;"
+					},
+					"dataset": {
+						"referenceName": "1_ds_deltalake_products",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Get Metadata products",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "lookup_metadata_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_gcp",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_filepath": {
+								"value": "@activity('lookup_metadata_table').output.value[0].source_file_path",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems",
+						"lastModified"
+					],
+					"storeSettings": {
+						"type": "GoogleCloudStorageReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('lookup_metadata_table').output.value[0].watermark_column",
+							"type": "Expression"
+						},
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Get Metadata tier_details",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "lookup_metadata_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_gcp",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_filepath": {
+								"value": "@activity('lookup_metadata_table').output.value[1].source_file_path",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems",
+						"lastModified"
+					],
+					"storeSettings": {
+						"type": "GoogleCloudStorageReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@activity('lookup_metadata_table').output.value[1].watermark_column",
+							"type": "Expression"
+						},
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEach_products",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "If checkemptyfolderproducts",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata products').output.childItems\n",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get MetadataFolreachProducts",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_gcp_param",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filepath": {
+											"value": "@activity('lookup_metadata_table').output.value[0].source_file_path",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"itemName",
+									"lastModified"
+								],
+								"storeSettings": {
+									"type": "GoogleCloudStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Copy productsdata",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get MetadataFolreachProducts",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "GoogleCloudStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_gcp_param",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filepath": {
+											"value": "@activity('lookup_metadata_table').output.value[0].source_file_path",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@activity('Get MetadataFolreachProducts').output.itemName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "lds_adls_sink_par",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filename": {
+											"value": "@replace(activity('Get MetadataFolreachProducts').output.itemName, '.csv', '.parquet')",
+											"type": "Expression"
+										},
+										"p_filepath": {
+											"value": "@concat('GCP/',activity('lookup_metadata_table').output.value[0].source_file_path)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "update logs_products_pass",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy productsdata",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat(\n    'copied data from ',\n     activity('lookup_metadata_table').output.value[0].source_file_path,\n     ' to ',\n     activity('lookup_metadata_table').output.value[0].layer,'rows read : rows wrriten ',\n     string(activity('Copy productsdata').output.rowsRead),\n     ' : ',\n     string(activity('Copy productsdata').output.rowsCopied))",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "success",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update watermarkproducts",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "update logs_products_pass",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/update matermark",
+								"baseParameters": {
+									"job_id": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"sourcepath": {
+										"value": "@activity('lookup_metadata_table').output.value[0].source_file_path",
+										"type": "Expression"
+									},
+									"watermark": {
+										"value": "@addSeconds(convertFromUtc(activity('Get MetadataFolreachProducts').output.lastModified, 'India Standard Time'), 1)\n\n",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_products_fail",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy productsdata",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@activity('Copy productsdata').Error.message",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "failed",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ForEach_tierdetails",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "If checkemptyfoldertier_details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata tier_details').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get MetadataFolreach tier_details",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_gcp_param",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filepath": {
+											"value": "@activity('lookup_metadata_table').output.value[1].source_file_path",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"itemName",
+									"lastModified"
+								],
+								"storeSettings": {
+									"type": "GoogleCloudStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Copy tier_details_data",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Get MetadataFolreach tier_details",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "GoogleCloudStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_gcp_param",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filepath": {
+											"value": "@activity('lookup_metadata_table').output.value[1].source_file_path",
+											"type": "Expression"
+										},
+										"p_filename": {
+											"value": "@activity('Get MetadataFolreach tier_details').output.itemName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "lds_adls_sink_par",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_filename": {
+											"value": "@replace(activity('Get MetadataFolreach tier_details').output.itemName, '.csv', '.parquet')\n",
+											"type": "Expression"
+										},
+										"p_filepath": {
+											"value": "@concat('GCP/',activity('lookup_metadata_table').output.value[1].source_file_path)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "update watermark tierdetails",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "update logs_tier_details",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/update matermark",
+								"baseParameters": {
+									"job_id": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"sourcepath": {
+										"value": "@activity('lookup_metadata_table').output.value[1].source_file_path",
+										"type": "Expression"
+									},
+									"watermark": {
+										"value": "@addSeconds(convertFromUtc(activity('Get MetadataFolreach tier_details').output.lastModified, 'India Standard Time'), 1)",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_tier_details",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy tier_details_data",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat(\n    'copied data from ',\n     activity('lookup_metadata_table').output.value[1].source_file_path,\n     ' to ',\n     activity('lookup_metadata_table').output.value[1].layer,'rows read : rows wrriten ',\n       string(activity('Copy tier_details_data').output.rowsRead),\n     ' : ',\n      string(activity('Copy tier_details_data').output.rowsCopied))\n\n ",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "success",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "update logs_failed",
+							"type": "DatabricksNotebook",
+							"dependsOn": [
+								{
+									"activity": "Copy tier_details_data",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@activity('Copy tier_details_data').Error.mesaage",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "failed",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If checkemptyfolderproducts",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata products",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(length(activity('Get Metadata products').output.childItems), 0)\n\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "update _emptyproductssfile",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat('no files at ',activity('lookup_metadata_table').output.value[0].source_file_path)",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "ignored",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "If checkemptyfoldertier_details",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata tier_details",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(length(activity('Get Metadata tier_details').output.childItems), 0)\n\n\n\n",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "update _emptytierdetailsfile",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Users/kwpwhatevertakes27@gmail.com/project1/pipeline notebooks/log insertion",
+								"baseParameters": {
+									"env": {
+										"value": "@pipeline().globalParameters.env",
+										"type": "Expression"
+									},
+									"loadId": {
+										"value": "@pipeline().parameters.p_loadId",
+										"type": "Expression"
+									},
+									"logMessage": {
+										"value": "@concat('no files at ',activity('lookup_metadata_table').output.value[1].source_file_path)",
+										"type": "Expression"
+									},
+									"logTimeStamp": {
+										"value": "@convertFromUtc(utcNow(), 'India Standard Time')",
+										"type": "Expression"
+									},
+									"pipeLineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"status": {
+										"value": "ignored",
+										"type": "Expression"
+									},
+									"triggerType": {
+										"value": "@pipeline().TriggerType",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_databricks",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_loadId": {
+				"type": "string",
+				"defaultValue": "101"
+			}
+		},
+		"folder": {
+			"name": "gcp_to_pt"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-05-08T05:51:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

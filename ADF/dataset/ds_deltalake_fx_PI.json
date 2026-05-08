@@ -1,0 +1,26 @@
+{
+	"name": "ds_deltalake_fx_PI",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_databricks_delalake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureDatabricksDeltaLakeDataset",
+		"typeProperties": {
+			"database": "dev_gold",
+			"table": "fx_api"
+		},
+		"schema": [
+			{
+				"name": "currency",
+				"type": "string"
+			},
+			{
+				"name": "rate",
+				"type": "double"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
