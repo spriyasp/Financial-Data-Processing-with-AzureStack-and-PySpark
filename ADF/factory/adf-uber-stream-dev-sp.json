@@ -1,0 +1,15 @@
+{
+	"name": "adf-uber-stream-dev-sp",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
+		}
+	},
+	"location": "southeastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "3e37ffa3-8ae4-466a-a098-7880d616f783",
+		"tenantId": "75a86e55-150f-4d2e-bbef-2eb890aef1ba"
+	}
+}
